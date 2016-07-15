@@ -1,5 +1,5 @@
 # Description
-#   Interact with the Red Canary threat portal
+#   Interact with the Red Canary threat detection portal
 #
 # Dependencies:
 #   None
@@ -9,26 +9,22 @@
 #   RC_PORTAL
 #
 # Commands:
-#   hubot rc count sensors - Fetches sensor count
-#   hubot rc count detections - Fetches detection count
 #   hubot rc ioc <detectionId> - Retrieve IOC's for the given detection id
-#   hubot rc host <detectionId> - Get hostname for detection id
+#   hubot rc find <Hostname> - Get detection ID for detections matching given hostname
 #   hubot rc summary <detectionId> - Get summary for detection id
-#
-# Notes:
-#   Basic interactions with the RedCanary portal
 #
 # Author:
 #   @byt3smith (Bobby Argenbright)
 
 API = process.env.RC_TOKEN
 PORTAL = process.env.RC_PORTAL
+BASE_URL = "https://#{PORTAL}.my.redcanary.co/openapi/v2"
 
 module.exports = (robot) ->
   # Get detection summary for detectionId
   robot.respond /rc summary (.*)/i, (msg) ->
     detection = msg.match[1]
-    msg.http("https://#{PORTAL}.my.redcanary.co/openapi/v2/detections/#{detection}.json?auth_token=#{API}")
+    msg.http("#{BASE_URL}/detections/#{detection}.json?auth_token=#{API}")
     .headers('Content-Type': 'application/json')
     .get() (err, res, body) ->
       if res.statusCode is 200
@@ -42,9 +38,29 @@ module.exports = (robot) ->
       else
         msg.send "[:x:] :fire: Status Code => #{res.statusCode}"
 
+  robot.respond /rc find (.*)/i, (msg) ->
+    host = msg.match[1]
+    detections = []
+    msg.http("#{BASE_URL}/detections.json?auth_token=#{API}&per_page=250")
+    .headers('Content-Type': 'application/json')
+    .get() (err, res, body) ->
+      msg.send("Retrieving the last 250 detections..")
+      if res.statusCode is 200
+        data = JSON.parse(body)
+        for i in data
+          if data['endpoint']['hostname'] == host
+            d_headline = data['headline']
+            detections.push(d_headline)
+        if detections.length == 0
+          msg.send("[:x:] No Results. Go home")
+        else
+          msg.send(detections.join("\n"))
+      else
+        msg.send "[:x:] :boom: Status Code => #{res.statusCode}"
+
   robot.respond /rc ioc (.*)/i, (msg) ->
     detection = msg.match[1]
-    msg.http("https://#{PORTAL}.my.redcanary.co/openapi/v2/detections/#{detection}/indicators.json?auth_token=#{API}")
+    msg.http("#{BASE_URL}/detections/#{detection}/indicators.json?auth_token=#{API}")
     .headers('Content-Type': 'application/json')
     .get() (err, res, body) ->
       if res.statusCode is 200
