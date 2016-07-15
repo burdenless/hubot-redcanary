@@ -1,7 +1,7 @@
 {
   "name": "hubot-redcanary",
   "description": "Basic interaction with the RedCanary portal through Hubot",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Bob Argenbright <@byt3smith>",
   "license": "MIT",
   "keywords": [
